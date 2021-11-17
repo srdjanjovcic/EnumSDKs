@@ -3,16 +3,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-//using Microsoft.Build.Utilities;
 
 namespace EnumSDKs
 {
     /// <summary>
     /// Structure to represent a target platform sdk
     /// </summary>
-    [SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "SDK", Justification = "Dev11 Beta (go-live) is shipping this way")]
     public class TargetPlatformSDK : IEquatable<TargetPlatformSDK>
     {
         /// <summary>

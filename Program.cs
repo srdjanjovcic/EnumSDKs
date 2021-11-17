@@ -4,7 +4,7 @@ namespace EnumSDKs
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             var platformSDKs = ToolLocationHelper.GetTargetPlatformSdks();
             foreach (var sdk in platformSDKs)

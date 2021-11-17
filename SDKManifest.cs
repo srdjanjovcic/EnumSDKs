@@ -61,28 +61,27 @@ namespace EnumSDKs
     /// <summary>
     /// Structure to represent the information contained in SDKManifest.xml
     /// </summary>
-    [SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "SDK", Justification = "Not worth breaking partners")]
     public class SDKManifest
     {
         /// <summary>
         /// Pattern in path to extension SDK used to help determine if manifest is from a framework SDK
         /// </summary>
-        private static string s_extensionSDKPathPattern = @"\MICROSOFT SDKS\WINDOWS\V8.0\EXTENSIONSDKS";
+        private static readonly string s_extensionSDKPathPattern = @"\MICROSOFT SDKS\WINDOWS\V8.0\EXTENSIONSDKS";
 
         /// <summary>
         /// Default version of MaxPlatformVersion in framework extension SDKs with manifest not containing such a property
         /// </summary>
-        private static string s_defaultMaxPlatformVersion = "8.0";
+        private static readonly string s_defaultMaxPlatformVersion = "8.0";
 
         /// <summary>
         /// Default version of MinOSVersion in framework extension SDKs with manifest not containing such a property
         /// </summary>
-        private static string s_defaultMinOSVersion = "6.2.1";
+        private static readonly string s_defaultMinOSVersion = "6.2.1";
 
         /// <summary>
         /// Default version of MaxOSVersionTested in framework extension SDKs with manifest not containing such a property
         /// </summary>
-        private static string s_defaultMaxOSVersionTested = "6.2.1";
+        private static readonly string s_defaultMaxOSVersionTested = "6.2.1";
 
         /// <summary>
         /// What should happen if this sdk is resolved with other sdks of the same productfamily or same sdk name.
@@ -158,7 +157,6 @@ namespace EnumSDKs
         /// <summary>
         /// The FrameworkIdentity for the sdk, this may be a single name or a | delimited name
         /// </summary>
-        [SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode", Justification = "Necessary for compatibility with specs of SDKManifest.xml")]
         public string FrameworkIdentity { get; private set; }
 
         /// <summary>
@@ -169,13 +167,11 @@ namespace EnumSDKs
         /// <summary>
         /// SDKType found in the sdk manifest
         /// </summary>
-        [SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "SDK", Justification = "Want to keep same case as the attribute in SDKManifest.xml")]
         public SDKType SDKType => _sdkType;
 
         /// <summary>
         /// CopyRedistToSubDirectory specifies where the redist files should be copied to relative to the root of the package.
         /// </summary>
-        [SuppressMessage("Microsoft.Naming", "CA1702:CompoundWordsShouldBeCasedCorrectly", MessageId = "SubDirectory", Justification = "Want to keep case compliant with the attributes in the SDKManifest.xml")]
         public string CopyRedistToSubDirectory { get; private set; }
 
         /// <summary>
@@ -186,7 +182,6 @@ namespace EnumSDKs
         /// <summary>
         /// DependsOnSDK is a semicolon delimited list of SDK identities that the SDK requires be resolved in order to function.
         /// </summary>
-        [SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "SDK", Justification = "Not worth breaking consumers")]
         public string DependsOnSDK { get; private set; }
 
         /// <summary>
@@ -361,8 +356,7 @@ namespace EnumSDKs
                         ReadFileListAttributes(rootElement.Attributes);
                         foreach (XmlNode childNode in rootElement.ChildNodes)
                         {
-                            XmlElement childElement = childNode as XmlElement;
-                            if (childElement == null)
+                            if (!(childNode is XmlElement childElement))
                             {
                                 continue;
                             }
@@ -484,7 +478,6 @@ namespace EnumSDKs
         /// <summary>
         /// Helper class with attributes of SDKManifest.xml
         /// </summary>
-        [SuppressMessage("Microsoft.Design", "CA1034:NestedTypesShouldNotBeVisible", Scope = "type", Target = "Microsoft.Build.Utilities.SDKManifest+Attributes", Justification = "Not worth breaking customers / spending resources to fix.")]
         public static class Attributes
         {
             /// <summary>
@@ -525,7 +518,6 @@ namespace EnumSDKs
             /// <summary>
             /// APPX manifest attribute
             /// </summary>
-            [SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "APPX", Justification = "Want to keep same case as the attribute in SDKManifest.xml")]
             public const string APPX = "APPX";
 
             /// <summary>
@@ -536,7 +528,6 @@ namespace EnumSDKs
             /// <summary>
             /// SDKType metadata name and manifest attribute
             /// </summary>
-            [SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "SDK", Justification = "Want to keep same case as the attribute in SDKManifest.xml")]
             public const string SDKType = "SDKType";
 
             /// <summary>
@@ -547,7 +538,6 @@ namespace EnumSDKs
             /// <summary>
             /// CopyRedistToSubDirectory metadata name and manifest attribute
             /// </summary>
-            [SuppressMessage("Microsoft.Naming", "CA1702:CompoundWordsShouldBeCasedCorrectly", MessageId = "SubDirectory", Justification = "Want to keep same case as in SDKManifest.sdk")]
             public const string CopyRedistToSubDirectory = "CopyRedistToSubDirectory";
 
             /// <summary>
@@ -563,13 +553,11 @@ namespace EnumSDKs
             /// <summary>
             /// TargetedSDKArchitecture metadata name
             /// </summary>
-            [SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "SDK", Justification = "Not worth breaking customers")]
             public const string TargetedSDK = "TargetedSDKArchitecture";
 
             /// <summary>
             /// TargetedSDKConfiguration metadata name
             /// </summary>
-            [SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "SDK", Justification = "Not worth breaking customers")]
             public const string TargetedSDKConfiguration = "TargetedSDKConfiguration";
 
             /// <summary>
@@ -580,7 +568,6 @@ namespace EnumSDKs
             /// <summary>
             /// DependsOn metadata name
             /// </summary>
-            [SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "SDK", Justification = "Not worth breaking customers")]
             public const string DependsOnSDK = "DependsOn";
 
             /// <summary>

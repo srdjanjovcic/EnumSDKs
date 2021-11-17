@@ -24,7 +24,7 @@ namespace EnumSDKs
         public static IList<TargetPlatformSDK> GetTargetPlatformSdks()
         {
             IEnumerable<TargetPlatformSDK> targetPlatforms = RetrieveTargetPlatformList();
-            return targetPlatforms.Where<TargetPlatformSDK>(platform => platform.Path != null).ToList<TargetPlatformSDK>();
+            return targetPlatforms.Where(platform => platform.Path != null).ToList();
         }
 
         public static IEnumerable<string> GetPlatformsForSDK(string sdkIdentifier, Version sdkVersion)
@@ -126,7 +126,7 @@ namespace EnumSDKs
             // On a 64 bit machine we always want to use the program files x86.  If we are running as a 64 bit process then this variable will be set correctly
             // If we are on a 32 bit machine or running as a 32 bit process then this variable will be null and the programFiles variable will be correct.
             string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-            if (String.IsNullOrEmpty(programFilesX86))
+            if (string.IsNullOrEmpty(programFilesX86))
             {
                 // 32 bit box
                 programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
@@ -285,8 +285,7 @@ namespace EnumSDKs
                         foreach (DirectoryInfo platformVersion in platformVersions)
                         {
                             // If this version directory is not actually a proper version format, ignore it.
-                            Version tempVersion;
-                            if (Version.TryParse(platformVersion.Name, out tempVersion))
+                            if (Version.TryParse(platformVersion.Name, out Version tempVersion))
                             {
                                 string sdkKey = TargetPlatformSDK.GetSdkKey(platformIdentifier.Name, platformVersion.Name);
 
