@@ -8,6 +8,8 @@ namespace EnumSDKs
         static void Main()
         {
             var platformSDKs = ToolLocationHelper.GetTargetPlatformSdks();
+
+            Console.WriteLine();
             foreach (var sdk in platformSDKs)
             {
                 Console.WriteLine($"{sdk.TargetPlatformIdentifier} - {sdk.TargetPlatformVersion}");

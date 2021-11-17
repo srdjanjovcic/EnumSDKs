@@ -272,6 +272,7 @@ namespace EnumSDKs.Extracted
             FileExists fileExists = new FileExists(File.Exists);
 
             bool is64bitOS = Environment.Is64BitOperatingSystem;
+            Console.WriteLine($"is64bitOS = {is64bitOS}");
 
             // Under WOW64 the HKEY_CURRENT_USER\SOFTWARE key is shared. This means the values are the same in the 64 bit and 32 bit views. This means we only need to get one view of this key.
             GatherSDKsFromRegistryImpl(platformMonikers, registryRoot, RegistryView.Default, RegistryHive.CurrentUser, getSubkeyNames, getRegistrySubKeyDefaultValue, openBaseKey, fileExists);
@@ -291,7 +292,9 @@ namespace EnumSDKs.Extracted
 
         internal static void GatherSDKsFromRegistryImpl(Dictionary<TargetPlatformSDK, TargetPlatformSDK> platformMonikers, string registryKeyRoot, RegistryView registryView, RegistryHive registryHive, GetRegistrySubKeyNames getRegistrySubKeyNames, GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue, OpenBaseKey openBaseKey, FileExists fileExists)
         {
-            //ErrorUtilities.VerifyThrowArgumentNull(platformMonikers, "PlatformMonikers");
+            Console.WriteLine();
+            Console.WriteLine($"{registryView} | {registryHive} | {registryKeyRoot}");
+
             if (string.IsNullOrEmpty(registryKeyRoot))
             {
                 return;
@@ -300,8 +303,6 @@ namespace EnumSDKs.Extracted
             // Open the hive for a given view
             using (RegistryKey baseKey = openBaseKey(registryHive, registryView))
             {
-                //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Gathering SDKS from registryRoot '{0}', Hive '{1}', View '{2}'", registryKeyRoot, registryHive, registryView);
-
                 // Attach the target platform to the registry root. This should give us something like 
                 // SOFTWARE\MICROSOFT\Microsoft SDKs\Windows
 
@@ -311,12 +312,14 @@ namespace EnumSDKs.Extracted
                 // No identifiers found.
                 if (platformIdentifiers == null)
                 {
-                    //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "No sub keys found under registryKeyRoot {0}", registryKeyRoot);
+                    Console.WriteLine($"  No platform identifiers found.");
                     return;
                 }
 
                 foreach (string platformIdentifier in platformIdentifiers)
                 {
+                    Console.WriteLine($"  - {platformIdentifier}");
+
                     string platformIdentifierKey = registryKeyRoot + @"\" + platformIdentifier;
 
                     // Get all of the version folders under the targetplatform identifier key
@@ -325,36 +328,50 @@ namespace EnumSDKs.Extracted
                     // No versions found.
                     if (versions == null)
                     {
-                        //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "No sub keys found under platformIdentifierKey {0}", platformIdentifierKey);
+                        Console.WriteLine($"     No versions found.");
                         return;
+                    }
+
+                    Console.WriteLine($"    Versions:");
+                    foreach (var v in versions)
+                    {
+                        Console.WriteLine($"       - {v}");
                     }
 
                     // Returns a a sorted set of versions and their associated registry strings. The reason we need the original strings is that
                     // they may contain a v where as a version does not support a v.
                     SortedDictionary<Version, List<string>> sortedVersions = GatherVersionStrings(null, versions);
 
+                    Console.WriteLine($"    Sorted versions:");
                     foreach (KeyValuePair<Version, List<string>> registryVersions in sortedVersions)
                     {
+                        Console.WriteLine($"       - {registryVersions.Key}");
+
                         TargetPlatformSDK platformSDKKey = new TargetPlatformSDK(platformIdentifier, registryVersions.Key, null);
                         TargetPlatformSDK targetPlatformSDK = null;
 
                         // Go through each of the raw version strings which were found in the registry
                         foreach (string version in registryVersions.Value)
                         {
+                            Console.WriteLine($"         - {version}");
+
                             // Attach the version and extensionSDKs strings to the platformIdentifier key we built up above.
                             // Make something like SOFTWARE\MICROSOFT\Microsoft SDKs\Windows\8.0\
                             string platformSDKsRegistryKey = platformIdentifierKey + @"\" + version;
 
                             string platformSDKDirectory = getRegistrySubKeyDefaultValue(baseKey, platformSDKsRegistryKey);
+                            Console.WriteLine($"           platformSDKDirectory = {platformSDKDirectory}");
 
                             // May be null because some use installationfolder instead
                             if (platformSDKDirectory == null)
                             {
                                 using (RegistryKey versionKey = baseKey.OpenSubKey(platformSDKsRegistryKey))
                                 {
+                                    Console.WriteLine($"           versionKey = {versionKey}");
                                     if (versionKey != null)
                                     {
                                         platformSDKDirectory = versionKey.GetValue("InstallationFolder") as string;
+                                        Console.WriteLine($"           platformSDKDirectory = {platformSDKDirectory}");
                                     }
                                 }
                             }
@@ -367,6 +384,9 @@ namespace EnumSDKs.Extracted
                                 // Windows kits is special because they do not have an sdk manifest yet, this is for the windows sdk. We will accept them as they are. For others
                                 // we will require that an sdkmanifest exists.
                                 platformSDKmanifestExists = fileExists(platformSDKManifest) || platformSDKDirectory.IndexOf("Windows Kits", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                                Console.WriteLine($"           {platformSDKManifest} = {(File.Exists(platformSDKManifest) ? "Exists" : "Does not exist")}");
+
                             }
 
                             if (targetPlatformSDK == null && !platformMonikers.TryGetValue(platformSDKKey, out targetPlatformSDK))
@@ -477,63 +497,65 @@ namespace EnumSDKs.Extracted
 
         private static void GatherPlatformsForSdk(TargetPlatformSDK sdk)
         {
-            //ErrorUtilities.VerifyThrow(!string.IsNullOrEmpty(sdk.Path), "SDK path must be set");
+            Console.WriteLine($"           Platforms:");
 
             try
             {
                 string platformsRoot = Path.Combine(sdk.Path, platformsFolderName);
+                Console.WriteLine($"             root = {platformsRoot}");
                 DirectoryInfo platformsRootInfo = new DirectoryInfo(platformsRoot);
 
                 if (platformsRootInfo.Exists)
                 {
                     DirectoryInfo[] platformIdentifiers = platformsRootInfo.GetDirectories();
-                    //ErrorUtilities.DebugTraceMessage("GatherPlatformsForSdk", "Found '{0}' platform identifier directories under '{1}'", platformIdentifiers.Length, platformsRoot);
 
                     // Iterate through all identifiers 
                     foreach (DirectoryInfo platformIdentifier in platformIdentifiers)
                     {
+                        Console.WriteLine($"             - {platformIdentifier.Name}");
                         DirectoryInfo[] platformVersions = platformIdentifier.GetDirectories();
-                        //ErrorUtilities.DebugTraceMessage("GatherPlatformsForSdk", "Found '{0}' platform version directories under '{1}'", platformVersions.Length, platformIdentifier.FullName);
 
                         // and all versions under each of those identifiers
                         foreach (DirectoryInfo platformVersion in platformVersions)
                         {
+                            Console.WriteLine($"               - {platformVersion.Name}");
                             // If this version directory is not actually a proper version format, ignore it.
                             if (Version.TryParse(platformVersion.Name, out Version tempVersion))
                             {
                                 string sdkKey = TargetPlatformSDK.GetSdkKey(platformIdentifier.Name, platformVersion.Name);
+                                Console.WriteLine($"                 {sdkKey}");
 
                                 // make sure we haven't already seen this one somehow
                                 if (!sdk.Platforms.ContainsKey(sdkKey))
                                 {
-                                    //ErrorUtilities.DebugTraceMessage("GatherPlatformsForSdk", "SDKKey '{0}' was not already found.", sdkKey);
-
                                     string pathToPlatformManifest = Path.Combine(platformVersion.FullName, "Platform.xml");
+                                    Console.WriteLine($"                 {pathToPlatformManifest}");
+                           
                                     if (File.Exists(pathToPlatformManifest))
                                     {
                                         sdk.Platforms.Add(sdkKey, TargetPlatformSDK.EnsureTrailingSlash(platformVersion.FullName));
                                     }
                                     else
                                     {
-                                        //ErrorUtilities.DebugTraceMessage("GatherPlatformsForSdk", "No Platform.xml could be found at '{0}'. Not adding this platform", pathToPlatformManifest);
+                                        Console.WriteLine($"                   - does not exist.");
                                     }
                                 }
                                 else
                                 {
-                                    //ErrorUtilities.DebugTraceMessage("GatherPlatformsForSdk", "SDKKey '{0}' was already found, not adding platform under '{1}'", sdkKey, platformVersion.FullName);
+                                    Console.WriteLine($"                   - already found earlier.");
                                 }
                             }
                             else
                             {
-                                //ErrorUtilities.DebugTraceMessage("GatherPlatformsForSdk", "Failed to parse platform version folder '{0}' under '{1}'", platformVersion.Name, platformVersion.FullName);
+                                Console.WriteLine($"                 - failed to parse.");
                             }
                         }
                     }
                 }
             }
-            catch (Exception) // when (ExceptionHandling.IsIoRelatedException(e))
+            catch (Exception e) // when (ExceptionHandling.IsIoRelatedException(e))
             {
-                //ErrorUtilities.DebugTraceMessage("GatherPlatformsForSdk", "Encountered exception trying to gather platform-specific data: {0}", e.Message);
+                Console.WriteLine($"           {e.GetType().Name}: {e.Message} {e.StackTrace}");
             }
         }
 
