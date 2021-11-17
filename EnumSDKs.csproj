@@ -43,6 +43,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="RegistryHelper.cs" />
+    <Compile Include="RegistryDelegates.cs" />
     <Compile Include="ApiContract.cs" />
     <Compile Include="TargetPlatformSDK.cs" />
     <Compile Include="SDKManifest.cs" />

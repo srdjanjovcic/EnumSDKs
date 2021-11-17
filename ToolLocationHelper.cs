@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Win32;
 
 namespace EnumSDKs
 {
@@ -76,6 +77,7 @@ namespace EnumSDKs
                 {
                     var monikers = new Dictionary<TargetPlatformSDK, TargetPlatformSDK>();
                     GatherSDKListFromDirectory(sdkDiskRoots, monikers);
+                    GatherSDKListFromRegistry(registryRoot, monikers);
 
                     collection = monikers.Keys.ToList();
                     s_cachedTargetPlatforms.Add(cachedTargetPlatformsKey, collection);
@@ -254,6 +256,218 @@ namespace EnumSDKs
                             else
                             {
                                 //ErrorUtilities.DebugTraceMessage("GatherSDKListFromDirectory", "Could not find ExtensionsSDK folder '{0}'. ", sdkFolderPath);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void GatherSDKListFromRegistry(string registryRoot, Dictionary<TargetPlatformSDK, TargetPlatformSDK> platformMonikers)
+        {
+            // Setup some delegates because the methods we call use them during unit testing.
+            GetRegistrySubKeyNames getSubkeyNames = new GetRegistrySubKeyNames(RegistryHelper.GetSubKeyNames);
+            GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue = new GetRegistrySubKeyDefaultValue(RegistryHelper.GetDefaultValue);
+            OpenBaseKey openBaseKey = new OpenBaseKey(RegistryHelper.OpenBaseKey);
+            FileExists fileExists = new FileExists(File.Exists);
+
+            bool is64bitOS = Environment.Is64BitOperatingSystem;
+
+            // Under WOW64 the HKEY_CURRENT_USER\SOFTWARE key is shared. This means the values are the same in the 64 bit and 32 bit views. This means we only need to get one view of this key.
+            GatherSDKsFromRegistryImpl(platformMonikers, registryRoot, RegistryView.Default, RegistryHive.CurrentUser, getSubkeyNames, getRegistrySubKeyDefaultValue, openBaseKey, fileExists);
+
+            // Since SDKS can contain multiple architecture it makes sense to register both 32 bit and 64 bit in one location, but if for some reason that 
+            // is not possible then we need to look at both hives. Choosing the 32 bit one first because is where we expect to find them usually.
+            if (is64bitOS)
+            {
+                GatherSDKsFromRegistryImpl(platformMonikers, registryRoot, RegistryView.Registry32, RegistryHive.LocalMachine, getSubkeyNames, getRegistrySubKeyDefaultValue, openBaseKey, fileExists);
+                GatherSDKsFromRegistryImpl(platformMonikers, registryRoot, RegistryView.Registry64, RegistryHive.LocalMachine, getSubkeyNames, getRegistrySubKeyDefaultValue, openBaseKey, fileExists);
+            }
+            else
+            {
+                GatherSDKsFromRegistryImpl(platformMonikers, registryRoot, RegistryView.Default, RegistryHive.LocalMachine, getSubkeyNames, getRegistrySubKeyDefaultValue, openBaseKey, fileExists);
+            }
+        }
+
+        internal static void GatherSDKsFromRegistryImpl(Dictionary<TargetPlatformSDK, TargetPlatformSDK> platformMonikers, string registryKeyRoot, RegistryView registryView, RegistryHive registryHive, GetRegistrySubKeyNames getRegistrySubKeyNames, GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue, OpenBaseKey openBaseKey, FileExists fileExists)
+        {
+            //ErrorUtilities.VerifyThrowArgumentNull(platformMonikers, "PlatformMonikers");
+            if (string.IsNullOrEmpty(registryKeyRoot))
+            {
+                return;
+            }
+
+            // Open the hive for a given view
+            using (RegistryKey baseKey = openBaseKey(registryHive, registryView))
+            {
+                //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Gathering SDKS from registryRoot '{0}', Hive '{1}', View '{2}'", registryKeyRoot, registryHive, registryView);
+
+                // Attach the target platform to the registry root. This should give us something like 
+                // SOFTWARE\MICROSOFT\Microsoft SDKs\Windows
+
+                // Get all of the platform identifiers
+                IEnumerable<string> platformIdentifiers = getRegistrySubKeyNames(baseKey, registryKeyRoot);
+
+                // No identifiers found.
+                if (platformIdentifiers == null)
+                {
+                    //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "No sub keys found under registryKeyRoot {0}", registryKeyRoot);
+                    return;
+                }
+
+                foreach (string platformIdentifier in platformIdentifiers)
+                {
+                    string platformIdentifierKey = registryKeyRoot + @"\" + platformIdentifier;
+
+                    // Get all of the version folders under the targetplatform identifier key
+                    IEnumerable<string> versions = getRegistrySubKeyNames(baseKey, platformIdentifierKey);
+
+                    // No versions found.
+                    if (versions == null)
+                    {
+                        //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "No sub keys found under platformIdentifierKey {0}", platformIdentifierKey);
+                        return;
+                    }
+
+                    // Returns a a sorted set of versions and their associated registry strings. The reason we need the original strings is that
+                    // they may contain a v where as a version does not support a v.
+                    SortedDictionary<Version, List<string>> sortedVersions = GatherVersionStrings(null, versions);
+
+                    foreach (KeyValuePair<Version, List<string>> registryVersions in sortedVersions)
+                    {
+                        TargetPlatformSDK platformSDKKey = new TargetPlatformSDK(platformIdentifier, registryVersions.Key, null);
+                        TargetPlatformSDK targetPlatformSDK = null;
+
+                        // Go through each of the raw version strings which were found in the registry
+                        foreach (string version in registryVersions.Value)
+                        {
+                            // Attach the version and extensionSDKs strings to the platformIdentifier key we built up above.
+                            // Make something like SOFTWARE\MICROSOFT\Microsoft SDKs\Windows\8.0\
+                            string platformSDKsRegistryKey = platformIdentifierKey + @"\" + version;
+
+                            string platformSDKDirectory = getRegistrySubKeyDefaultValue(baseKey, platformSDKsRegistryKey);
+
+                            // May be null because some use installationfolder instead
+                            if (platformSDKDirectory == null)
+                            {
+                                using (RegistryKey versionKey = baseKey.OpenSubKey(platformSDKsRegistryKey))
+                                {
+                                    if (versionKey != null)
+                                    {
+                                        platformSDKDirectory = versionKey.GetValue("InstallationFolder") as string;
+                                    }
+                                }
+                            }
+
+                            bool platformSDKmanifestExists = false;
+
+                            if (platformSDKDirectory != null)
+                            {
+                                string platformSDKManifest = Path.Combine(platformSDKDirectory, "SDKManifest.xml");
+                                // Windows kits is special because they do not have an sdk manifest yet, this is for the windows sdk. We will accept them as they are. For others
+                                // we will require that an sdkmanifest exists.
+                                platformSDKmanifestExists = fileExists(platformSDKManifest) || platformSDKDirectory.IndexOf("Windows Kits", StringComparison.OrdinalIgnoreCase) >= 0;
+                            }
+
+                            if (targetPlatformSDK == null && !platformMonikers.TryGetValue(platformSDKKey, out targetPlatformSDK))
+                            {
+                                targetPlatformSDK = new TargetPlatformSDK(platformSDKKey.TargetPlatformIdentifier, platformSDKKey.TargetPlatformVersion, platformSDKmanifestExists ? platformSDKDirectory : null);
+                                platformMonikers.Add(targetPlatformSDK, targetPlatformSDK);
+                            }
+
+                            if (targetPlatformSDK.Path == null && platformSDKmanifestExists)
+                            {
+                                targetPlatformSDK.Path = platformSDKDirectory;
+                            }
+
+                            // Gather the set of platforms supported by this SDK if it's a valid one. 
+                            if (!string.IsNullOrEmpty(targetPlatformSDK.Path))
+                            {
+                                GatherPlatformsForSdk(targetPlatformSDK);
+                            }
+
+                            // Make something like SOFTWARE\MICROSOFT\Microsoft SDKs\Windows\8.0\ExtensionSdks
+                            string extensionSDKsKey = platformSDKsRegistryKey + @"\ExtensionSDKs";
+                            //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Getting subkeys of '{0}'", extensionSDKsKey);
+
+                            // Get all of the SDK name folders under the ExtensionSDKs registry key
+                            IEnumerable<string> sdkNames = getRegistrySubKeyNames(baseKey, extensionSDKsKey);
+                            if (sdkNames == null)
+                            {
+                                //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Could not find subkeys of '{0}'", extensionSDKsKey);
+                                continue;
+                            }
+
+                            //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Found subkeys of '{0}'", extensionSDKsKey);
+
+                            // For each SDK folder under ExtensionSDKs
+                            foreach (string sdkName in sdkNames)
+                            {
+                                // Combine the SDK Name with the ExtensionSDKs key we have built up above.
+                                // Make something like SOFTWARE\MICROSOFT\Windows SDKs\Windows\8.0\ExtensionSDKs\XNA
+                                string sdkNameKey = extensionSDKsKey + @"\" + sdkName;
+
+                                //Get all of the version registry keys under the SDK Name Key.
+                                IEnumerable<string> sdkVersions = getRegistrySubKeyNames(baseKey, sdkNameKey);
+
+                                //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Getting subkeys of '{0}'", sdkNameKey);
+                                if (sdkVersions == null)
+                                {
+                                    //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Could not find subkeys of '{0}'", sdkNameKey);
+                                    continue;
+                                }
+
+                                //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Found subkeys of '{0}'", sdkNameKey);
+
+                                // For each version registry entry under the SDK Name registry key
+                                foreach (string sdkVersion in sdkVersions)
+                                {
+                                    // We only want registry keys which parse directly to versions
+                                    Version tempVersion;
+                                    if (Version.TryParse(sdkVersion, out tempVersion))
+                                    {
+                                        string sdkDirectoryKey = sdkNameKey + @"\" + sdkVersion;
+                                        //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Getting default key for '{0}'", sdkDirectoryKey);
+
+                                        // Now that we found the registry key we need to get its default value which points to the directory this SDK is in.
+                                        string directoryName = getRegistrySubKeyDefaultValue(baseKey, sdkDirectoryKey);
+                                        string sdkKey = TargetPlatformSDK.GetSdkKey(sdkName, sdkVersion);
+                                        if (directoryName != null)
+                                        {
+                                            //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "SDK installation location = '{0}'", directoryName);
+
+                                            // Make sure the directory exists and that it has not been added before.
+                                            if (!targetPlatformSDK.ExtensionSDKs.ContainsKey(sdkKey))
+                                            {
+                                                if (Directory.Exists(directoryName))
+                                                {
+                                                    string sdkManifestFileLocation = Path.Combine(directoryName, "SDKManifest.xml");
+                                                    if (fileExists(sdkManifestFileLocation))
+                                                    {
+                                                        //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Adding SDK '{0}'  at '{1}' to the list of found sdks.", sdkKey, directoryName);
+                                                        targetPlatformSDK.ExtensionSDKs.Add(sdkKey, TargetPlatformSDK.EnsureTrailingSlash(directoryName));
+                                                    }
+                                                    else
+                                                    {
+                                                        //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "No SDKManifest.xml file found at '{0}'.", sdkManifestFileLocation);
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "SDK directory '{0}' does not exist", directoryName);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "SDK key was previously added. '{0}'", sdkKey);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Default key is null for '{0}'", sdkDirectoryKey);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
