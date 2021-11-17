@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using Microsoft.Win32;
 
-namespace EnumSDKs
+namespace EnumSDKs.Extracted
 {
     internal delegate RegistryKey OpenBaseKey(RegistryHive hive, RegistryView view);
     internal delegate IEnumerable<string> GetRegistrySubKeyNames(RegistryKey baseKey, string subKey);

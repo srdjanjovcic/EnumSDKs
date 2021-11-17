@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace EnumSDKs
+namespace EnumSDKs.Extracted
 {
     /// <summary>
     /// Structure to represent a target platform sdk

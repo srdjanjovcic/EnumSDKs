@@ -8,7 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Xml;
 
-namespace EnumSDKs
+namespace EnumSDKs.Extracted
 {
     /// <summary>
     /// Type of SDK

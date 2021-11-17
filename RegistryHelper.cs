@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using Microsoft.Win32;
 
-namespace EnumSDKs
+namespace EnumSDKs.Extracted
 {
     /// <summary>
     /// Helper methods that simplify registry access.

@@ -8,7 +8,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.Win32;
 
-namespace EnumSDKs
+namespace EnumSDKs.Extracted
 {
     internal static class ToolLocationHelper
     {
