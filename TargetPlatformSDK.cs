@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using Microsoft.Build.Utilities;
+//using Microsoft.Build.Utilities;
 
 namespace EnumSDKs
 {
@@ -13,7 +13,7 @@ namespace EnumSDKs
     /// Structure to represent a target platform sdk
     /// </summary>
     [SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "SDK", Justification = "Dev11 Beta (go-live) is shipping this way")]
-    public class TargetPlatformSDKCopy : IEquatable<TargetPlatformSDKCopy>
+    public class TargetPlatformSDK : IEquatable<TargetPlatformSDK>
     {
         /// <summary>
         /// Path to the platform sdk may be null if not a platform sdk.
@@ -38,7 +38,7 @@ namespace EnumSDKs
         /// <summary>
         /// Constructor
         /// </summary>
-        public TargetPlatformSDKCopy(string targetPlatformIdentifier, Version targetPlatformVersion, string path)
+        public TargetPlatformSDK(string targetPlatformIdentifier, Version targetPlatformVersion, string path)
         {
              //ErrorUtilities.VerifyThrowArgumentNull(targetPlatformIdentifier, nameof(targetPlatformIdentifier));
              //ErrorUtilities.VerifyThrowArgumentNull(targetPlatformVersion, nameof(targetPlatformVersion));
@@ -170,7 +170,7 @@ namespace EnumSDKs
         /// </summary>
         public override bool Equals(object obj)
         {
-            if (!(obj is TargetPlatformSDKCopy moniker))
+            if (!(obj is TargetPlatformSDK moniker))
             {
                 return false;
             }
@@ -186,7 +186,7 @@ namespace EnumSDKs
         /// <summary>
         /// Implement IEquatable
         /// </summary>
-        public bool Equals(TargetPlatformSDKCopy other)
+        public bool Equals(TargetPlatformSDK other)
         {
             if (other == null)
             {

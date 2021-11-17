@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace EnumSDKs
 {
-    internal static class ToolLocationHelperCopy
+    internal static class ToolLocationHelper
     {
         private const string platformsFolderName = "Platforms";
         private const string uapDirectoryName = "Windows Kits";
@@ -17,14 +17,14 @@ namespace EnumSDKs
         private const int uapVersion = 10;
 
         private static readonly object s_locker = new object();
-        private static Dictionary<string, IEnumerable<TargetPlatformSDKCopy>> s_cachedTargetPlatforms;
-        private static Dictionary<string, TargetPlatformSDKCopy> s_cachedExtensionSdks;
+        private static Dictionary<string, IEnumerable<TargetPlatformSDK>> s_cachedTargetPlatforms;
+        private static Dictionary<string, TargetPlatformSDK> s_cachedExtensionSdks;
         private static readonly char[] s_diskRootSplitChars = { ';' };
 
-        public static IList<TargetPlatformSDKCopy> GetTargetPlatformSdks()
+        public static IList<TargetPlatformSDK> GetTargetPlatformSdks()
         {
-            IEnumerable<TargetPlatformSDKCopy> targetPlatforms = RetrieveTargetPlatformList();
-            return targetPlatforms.Where<TargetPlatformSDKCopy>(platform => platform.Path != null).ToList<TargetPlatformSDKCopy>();
+            IEnumerable<TargetPlatformSDK> targetPlatforms = RetrieveTargetPlatformList();
+            return targetPlatforms.Where<TargetPlatformSDK>(platform => platform.Path != null).ToList<TargetPlatformSDK>();
         }
 
         public static IEnumerable<string> GetPlatformsForSDK(string sdkIdentifier, Version sdkVersion)
@@ -32,10 +32,10 @@ namespace EnumSDKs
             //ErrorUtilities.VerifyThrowArgumentNull(sdkIdentifier, nameof(sdkIdentifier));
             //ErrorUtilities.VerifyThrowArgumentNull(sdkVersion, nameof(sdkVersion));
 
-            IEnumerable<TargetPlatformSDKCopy> targetPlatformSDKs = RetrieveTargetPlatformList();
+            IEnumerable<TargetPlatformSDK> targetPlatformSDKs = RetrieveTargetPlatformList();
 
             var platforms = new List<string>();
-            foreach (TargetPlatformSDKCopy sdk in targetPlatformSDKs)
+            foreach (TargetPlatformSDK sdk in targetPlatformSDKs)
             {
                 bool isSDKMatch = string.Equals(sdk.TargetPlatformIdentifier, sdkIdentifier, StringComparison.OrdinalIgnoreCase) && Equals(sdk.TargetPlatformVersion, sdkVersion);
                 if (!isSDKMatch || sdk.Platforms == null)
@@ -52,7 +52,7 @@ namespace EnumSDKs
             return platforms;
         }
 
-        private static IEnumerable<TargetPlatformSDKCopy> RetrieveTargetPlatformList()
+        private static IEnumerable<TargetPlatformSDK> RetrieveTargetPlatformList()
         {
             // Get the disk and registry roots to search for sdks under
             List<string> sdkDiskRoots = GetTargetPlatformMonikerDiskRoots();
@@ -64,17 +64,17 @@ namespace EnumSDKs
             {
                 if (s_cachedTargetPlatforms == null)
                 {
-                    s_cachedTargetPlatforms = new Dictionary<string, IEnumerable<TargetPlatformSDKCopy>>(StringComparer.OrdinalIgnoreCase);
+                    s_cachedTargetPlatforms = new Dictionary<string, IEnumerable<TargetPlatformSDK>>(StringComparer.OrdinalIgnoreCase);
                 }
 
                 if (s_cachedExtensionSdks == null)
                 {
-                    s_cachedExtensionSdks = new Dictionary<string, TargetPlatformSDKCopy>(StringComparer.OrdinalIgnoreCase);
+                    s_cachedExtensionSdks = new Dictionary<string, TargetPlatformSDK>(StringComparer.OrdinalIgnoreCase);
                 }
 
-                if (!s_cachedTargetPlatforms.TryGetValue(cachedTargetPlatformsKey, out IEnumerable<TargetPlatformSDKCopy> collection))
+                if (!s_cachedTargetPlatforms.TryGetValue(cachedTargetPlatformsKey, out IEnumerable<TargetPlatformSDK> collection))
                 {
-                    var monikers = new Dictionary<TargetPlatformSDKCopy, TargetPlatformSDKCopy>();
+                    var monikers = new Dictionary<TargetPlatformSDK, TargetPlatformSDK>();
                     GatherSDKListFromDirectory(sdkDiskRoots, monikers);
 
                     collection = monikers.Keys.ToList();
@@ -171,7 +171,7 @@ namespace EnumSDKs
             return registryRoot;
         }
 
-        internal static void GatherSDKListFromDirectory(List<string> diskroots, Dictionary<TargetPlatformSDKCopy, TargetPlatformSDKCopy> platformSDKs)
+        internal static void GatherSDKListFromDirectory(List<string> diskroots, Dictionary<TargetPlatformSDK, TargetPlatformSDK> platformSDKs)
         {
             foreach (string diskRoot in diskroots)
             {
@@ -205,16 +205,16 @@ namespace EnumSDKs
                     // Go through each of the targetplatform versions under the targetplatform identifier.
                     foreach (KeyValuePair<Version, List<string>> directoryUnderRoot in versionsInRoot)
                     {
-                        TargetPlatformSDKCopy platformSDKKey;
+                        TargetPlatformSDK platformSDKKey;
                         if (rootPathWithIdentifier.Name.Equals(uapDirectoryName, StringComparison.OrdinalIgnoreCase) && directoryUnderRoot.Key.Major == uapVersion)
                         {
-                            platformSDKKey = new TargetPlatformSDKCopy(uapRegistryName, directoryUnderRoot.Key, null);
+                            platformSDKKey = new TargetPlatformSDK(uapRegistryName, directoryUnderRoot.Key, null);
                         }
                         else
                         {
-                            platformSDKKey = new TargetPlatformSDKCopy(rootPathWithIdentifier.Name, directoryUnderRoot.Key, null);
+                            platformSDKKey = new TargetPlatformSDK(rootPathWithIdentifier.Name, directoryUnderRoot.Key, null);
                         }
-                        TargetPlatformSDKCopy targetPlatformSDK = null;
+                        TargetPlatformSDK targetPlatformSDK = null;
 
                         // DirectoryUnderRoot.Value will be a list of the raw directory strings under the targetplatform identifier directory that map to the versions specified in directoryUnderRoot.Key.
                         foreach (string version in directoryUnderRoot.Value)
@@ -227,7 +227,7 @@ namespace EnumSDKs
                             bool platformSDKManifestExists = File.Exists(platformSDKManifest);
                             if (targetPlatformSDK == null && !platformSDKs.TryGetValue(platformSDKKey, out targetPlatformSDK))
                             {
-                                targetPlatformSDK = new TargetPlatformSDKCopy(platformSDKKey.TargetPlatformIdentifier, platformSDKKey.TargetPlatformVersion, platformSDKManifestExists ? platformSDKDirectory : null);
+                                targetPlatformSDK = new TargetPlatformSDK(platformSDKKey.TargetPlatformIdentifier, platformSDKKey.TargetPlatformVersion, platformSDKManifestExists ? platformSDKDirectory : null);
                                 platformSDKs.Add(targetPlatformSDK, targetPlatformSDK);
                             }
 
@@ -261,7 +261,7 @@ namespace EnumSDKs
             }
         }
 
-        private static void GatherPlatformsForSdk(TargetPlatformSDKCopy sdk)
+        private static void GatherPlatformsForSdk(TargetPlatformSDK sdk)
         {
             //ErrorUtilities.VerifyThrow(!string.IsNullOrEmpty(sdk.Path), "SDK path must be set");
 
@@ -288,7 +288,7 @@ namespace EnumSDKs
                             Version tempVersion;
                             if (Version.TryParse(platformVersion.Name, out tempVersion))
                             {
-                                string sdkKey = TargetPlatformSDKCopy.GetSdkKey(platformIdentifier.Name, platformVersion.Name);
+                                string sdkKey = TargetPlatformSDK.GetSdkKey(platformIdentifier.Name, platformVersion.Name);
 
                                 // make sure we haven't already seen this one somehow
                                 if (!sdk.Platforms.ContainsKey(sdkKey))
@@ -298,7 +298,7 @@ namespace EnumSDKs
                                     string pathToPlatformManifest = Path.Combine(platformVersion.FullName, "Platform.xml");
                                     if (File.Exists(pathToPlatformManifest))
                                     {
-                                        sdk.Platforms.Add(sdkKey, TargetPlatformSDKCopy.EnsureTrailingSlash(platformVersion.FullName));
+                                        sdk.Platforms.Add(sdkKey, TargetPlatformSDK.EnsureTrailingSlash(platformVersion.FullName));
                                     }
                                     else
                                     {
@@ -318,13 +318,13 @@ namespace EnumSDKs
                     }
                 }
             }
-            catch (Exception e) // when (ExceptionHandling.IsIoRelatedException(e))
+            catch (Exception) // when (ExceptionHandling.IsIoRelatedException(e))
             {
                 //ErrorUtilities.DebugTraceMessage("GatherPlatformsForSdk", "Encountered exception trying to gather platform-specific data: {0}", e.Message);
             }
         }
 
-        internal static void GatherExtensionSDKs(DirectoryInfo extensionSdksDirectory, TargetPlatformSDKCopy targetPlatformSDK)
+        internal static void GatherExtensionSDKs(DirectoryInfo extensionSdksDirectory, TargetPlatformSDK targetPlatformSDK)
         {
             //ErrorUtilities.DebugTraceMessage("GatherExtensionSDKs", "Found ExtensionsSDK folder '{0}'. ", extensionSdksDirectory.FullName);
 
@@ -346,7 +346,7 @@ namespace EnumSDKs
                     {
                         // Create SDK name based on the folder structure. We could open the manifest here and read the display name, but that would 
                         // add complexity and since things are supposed to be in a certain structure I don't think that is needed at this point.
-                        string SDKKey = TargetPlatformSDKCopy.GetSdkKey(sdkNameFolders.Name, sdkVersionDirectory.Name);
+                        string SDKKey = TargetPlatformSDK.GetSdkKey(sdkNameFolders.Name, sdkVersionDirectory.Name);
 
                         // Make sure we have not added the SDK to the list of found SDKs before.
                         if (!targetPlatformSDK.ExtensionSDKs.ContainsKey(SDKKey))
@@ -355,7 +355,7 @@ namespace EnumSDKs
                             string pathToSDKManifest = Path.Combine(sdkVersionDirectory.FullName, "SDKManifest.xml");
                             if (File.Exists(pathToSDKManifest))
                             {
-                                targetPlatformSDK.ExtensionSDKs.Add(SDKKey, TargetPlatformSDKCopy.EnsureTrailingSlash(sdkVersionDirectory.FullName));
+                                targetPlatformSDK.ExtensionSDKs.Add(SDKKey, TargetPlatformSDK.EnsureTrailingSlash(sdkVersionDirectory.FullName));
                             }
                             else
                             {
