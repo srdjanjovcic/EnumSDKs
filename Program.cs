@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Build.Utilities;
 
 namespace EnumSDKs
 {
@@ -10,6 +7,19 @@ namespace EnumSDKs
     {
         static void Main(string[] args)
         {
+            var platformSDKs = ToolLocationHelper.GetTargetPlatformSdks();
+            foreach (var sdk in platformSDKs)
+            {
+                Console.WriteLine($"{sdk.TargetPlatformIdentifier} - {sdk.TargetPlatformVersion}");
+                var  platforms = ToolLocationHelper.GetPlatformsForSDK(sdk.TargetPlatformIdentifier, sdk.TargetPlatformVersion);
+                foreach (string platform in platforms)
+                {
+                    Console.WriteLine($"\t{platform}");
+                }
+            }
+
+            Console.WriteLine("Done!");
+            Console.ReadKey();
         }
     }
 }
