@@ -6,7 +6,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security;
+using System.Security.Permissions;
 using Microsoft.Win32;
+using Microsoft.Win32.Extracted;
+using Microsoft.Win32.SafeHandles;
+using Microsoft.Win32.SafeHandles.Extracted;
 
 namespace EnumSDKs.Extracted
 {
@@ -508,6 +514,30 @@ namespace EnumSDKs.Extracted
                 Console.WriteLine($"                    exists     = {platformsRootInfo.Exists}");
                 Console.WriteLine($"                    attributes = {platformsRootInfo.Attributes}");
 
+                var fio = new FileIOPermission(FileIOPermissionAccess.Read, platformsRoot);
+                try
+                {
+                    fio.Demand();
+                    Console.WriteLine($"                    Platforms: Can read directory.");
+                }
+                catch (SecurityException se)
+                {
+                    Console.WriteLine($"                    Platforms: {se.GetType().Name}: {se.Message} {se.StackTrace}");
+                }
+
+                var fioUAP = new FileIOPermission(FileIOPermissionAccess.Read, Path.Combine(platformsRoot, "UAP"));
+                try
+                {
+                    fioUAP.Demand();
+                    Console.WriteLine($"                    Platforms\\UAP: Can read directory.");
+                }
+                catch (SecurityException se)
+                {
+                    Console.WriteLine($"                    Platforms\\UAP: {se.GetType().Name}: {se.Message} {se.StackTrace}");
+                }
+
+                CheckDirectory("                    ", platformsRoot);
+
                 if (platformsRootInfo.Exists)
                 {
                     DirectoryInfo[] platformIdentifiers = platformsRootInfo.GetDirectories();
@@ -518,6 +548,10 @@ namespace EnumSDKs.Extracted
                     foreach (DirectoryInfo platformIdentifier in platformIdentifiers)
                     {
                         Console.WriteLine($"             - {platformIdentifier.Name}");
+                        Console.WriteLine($"               exists     = {platformsRootInfo.Exists}");
+                        Console.WriteLine($"               attributes = {platformsRootInfo.Attributes}");
+                        CheckDirectory("               ", platformIdentifier.FullName);
+
                         DirectoryInfo[] platformVersions = platformIdentifier.GetDirectories();
 
                         Console.WriteLine($"               numberOfDirectories = {platformVersions.Length}");
@@ -563,6 +597,55 @@ namespace EnumSDKs.Extracted
             catch (Exception e) // when (ExceptionHandling.IsIoRelatedException(e))
             {
                 Console.WriteLine($"           {e.GetType().Name}: {e.Message} {e.StackTrace}");
+            }
+        }
+
+        private static void CheckDirectory(string prefix, string directory)
+        {
+            Console.WriteLine($"{prefix}Checking {directory}");
+
+            Win32Native.WIN32_FIND_DATA data = default;
+            string fileName = directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            int errorMode = Win32Native.SetErrorMode(1);
+            try
+            {
+                SafeFindHandle safeFindHandle = Win32Native.FindFirstFile(fileName, ref data);
+                Console.WriteLine($"{prefix}safeFindHandle.IsInvalid = {safeFindHandle.IsInvalid}");
+                try
+                {
+                    if (safeFindHandle.IsInvalid)
+                    {
+                        var num = Marshal.GetLastWin32Error();
+                        Console.WriteLine($"{prefix}Win32Error = {num}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"{prefix}data.cFileName           = {data.cFileName}");
+                        Console.WriteLine($"{prefix}data.dwFileAttributes    = {data.dwFileAttributes}");
+                        Console.WriteLine($"{prefix}data.IsFile              = {data.IsFile}");
+                        Console.WriteLine($"{prefix}data.IsNormalDirectory   = {data.IsNormalDirectory}");
+                        Console.WriteLine($"{prefix}data.IsRelativeDirectory = {data.IsRelativeDirectory}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"{prefix}Reading handle: {e.GetType().Name}: {e.Message} {e.StackTrace}");
+                }
+                finally
+                {
+                    try
+                    {
+                        safeFindHandle.Close();
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"{prefix}Closing handle: {e.GetType().Name}: {e.Message} {e.StackTrace}");
+                    }
+                }
+            }
+            finally
+            {
+                Win32Native.SetErrorMode(errorMode);
             }
         }
 

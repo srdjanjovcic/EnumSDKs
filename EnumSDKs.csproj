@@ -22,6 +22,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -31,6 +32,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -46,8 +48,10 @@
     <Compile Include="RegistryHelper.cs" />
     <Compile Include="RegistryDelegates.cs" />
     <Compile Include="ApiContract.cs" />
+    <Compile Include="SafeFindHandle.cs" />
     <Compile Include="TargetPlatformSDK.cs" />
     <Compile Include="SDKManifest.cs" />
+    <Compile Include="Win32Native.cs" />
     <Compile Include="ToolLocationHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
