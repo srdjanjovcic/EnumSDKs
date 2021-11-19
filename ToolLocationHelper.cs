@@ -505,15 +505,22 @@ namespace EnumSDKs.Extracted
                 Console.WriteLine($"             root = {platformsRoot}");
                 DirectoryInfo platformsRootInfo = new DirectoryInfo(platformsRoot);
 
+                Console.WriteLine($"                    exists     = {platformsRootInfo.Exists}");
+                Console.WriteLine($"                    attributes = {platformsRootInfo.Attributes}");
+
                 if (platformsRootInfo.Exists)
                 {
                     DirectoryInfo[] platformIdentifiers = platformsRootInfo.GetDirectories();
+
+                    Console.WriteLine($"                    numberOfDirectories = {platformIdentifiers.Length}");
 
                     // Iterate through all identifiers 
                     foreach (DirectoryInfo platformIdentifier in platformIdentifiers)
                     {
                         Console.WriteLine($"             - {platformIdentifier.Name}");
                         DirectoryInfo[] platformVersions = platformIdentifier.GetDirectories();
+
+                        Console.WriteLine($"               numberOfDirectories = {platformVersions.Length}");
 
                         // and all versions under each of those identifiers
                         foreach (DirectoryInfo platformVersion in platformVersions)
