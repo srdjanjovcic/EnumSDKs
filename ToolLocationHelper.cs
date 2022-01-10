@@ -100,11 +100,11 @@ namespace EnumSDKs.Extracted
             ExtractSdkDiskRootsFromEnvironment(sdkDiskRoots, sdkDirectoryRootsFromEnvironment);
             if (sdkDiskRoots.Count == 0)
             {
-                //ErrorUtilities.DebugTraceMessage("GetTargetPlatformMonikerDiskRoots", "Getting default disk roots");
+                Console.WriteLine("GetTargetPlatformMonikerDiskRoots: Getting default disk roots");
                 GetDefaultSDKDiskRoots(sdkDiskRoots);
             }
 
-            //ErrorUtilities.DebugTraceMessage("GetTargetPlatformMonikerDiskRoots", "Diskroots being used '{0}'", string.Join(";", sdkDiskRoots.ToArray()));
+            Console.WriteLine("GetTargetPlatformMonikerDiskRoots: Diskroots being used '{0}'", string.Join(";", sdkDiskRoots.ToArray()));
             return sdkDiskRoots;
         }
 
@@ -148,7 +148,7 @@ namespace EnumSDKs.Extracted
             if (diskRoots != null && !string.IsNullOrEmpty(directoryRoots))
             {
                 string[] splitRoots = directoryRoots.Split(s_diskRootSplitChars, StringSplitOptions.RemoveEmptyEntries);
-                //ErrorUtilities.DebugTraceMessage("ExtractSdkDiskRootsFromEnvironment", "DiskRoots from Registry '{0}'", string.Join(";", splitRoots));
+                Console.WriteLine("ExtractSdkDiskRootsFromEnvironment: DiskRoots from Registry '{0}'", string.Join(";", splitRoots));
                 diskRoots.AddRange(splitRoots);
             }
 
@@ -161,19 +161,17 @@ namespace EnumSDKs.Extracted
 
         private static string GetTargetPlatformMonikerRegistryRoots()
         {
-            //ErrorUtilities.DebugTraceMessage("GetTargetPlatformMonikerRegistryRoots", "RegistryRoot passed in '{0}'", registryRootLocation ?? string.Empty);
-
             string disableRegistryForSDKLookup = Environment.GetEnvironmentVariable("MSBUILDDISABLEREGISTRYFORSDKLOOKUP");
             // If we are not disabling the registry for platform sdk lookups then lets look in the default location.
             string registryRoot = string.Empty;
             if (disableRegistryForSDKLookup == null)
             {
                 registryRoot = @"SOFTWARE\MICROSOFT\Microsoft SDKs\";
-                //ErrorUtilities.DebugTraceMessage("GetTargetPlatformMonikerRegistryRoots", "RegistryRoot to be looked under '{0}'", registryRoot);
+                Console.WriteLine("GetTargetPlatformMonikerRegistryRoots: RegistryRoot to be looked under '{0}'", registryRoot);
             }
             else
             {
-                //ErrorUtilities.DebugTraceMessage("GetTargetPlatformMonikerRegistryRoots", "MSBUILDDISABLEREGISTRYFORSDKLOOKUP is set registry sdk lookup is disabled");
+                Console.WriteLine("GetTargetPlatformMonikerRegistryRoots: MSBUILDDISABLEREGISTRYFORSDKLOOKUP is set registry sdk lookup is disabled");
             }
 
             return registryRoot;
@@ -186,7 +184,7 @@ namespace EnumSDKs.Extracted
                 DirectoryInfo rootInfo = new DirectoryInfo(diskRoot);
                 if (!rootInfo.Exists)
                 {
-                    //ErrorUtilities.DebugTraceMessage("GatherSDKListFromDirectory", "DiskRoot '{0}'does not exist, skipping it", diskRoot);
+                    Console.WriteLine("GatherSDKListFromDirectory: DiskRoot '{0}'does not exist, skipping it", diskRoot);
                     continue;
                 }
 
@@ -197,18 +195,18 @@ namespace EnumSDKs.Extracted
 
                     if (!rootPathWithIdentifier.Exists)
                     {
-                        //ErrorUtilities.DebugTraceMessage("GatherSDKListFromDirectory", "Disk root with Identifier: '{0}' does not exist. ", rootPathWithIdentifier);
+                        Console.WriteLine("GatherSDKListFromDirectory: Disk root with Identifier: '{0}' does not exist. ", rootPathWithIdentifier);
                         continue;
                     }
 
-                    //ErrorUtilities.DebugTraceMessage("GatherSDKListFromDirectory", "Disk root with Identifier: '{0}' does exist. Enumerating version folders under it. ", rootPathWithIdentifier);
+                    Console.WriteLine("GatherSDKListFromDirectory: Disk root with Identifier: '{0}' does exist. Enumerating version folders under it. ", rootPathWithIdentifier);
 
                     // Get a list of subdirectories under the root path and identifier, Ie. c:\Program files\Microsoft SDKs\Windows we should see things like, V8.0, 8.0, 9.0 ect.
                     // Only grab the folders that have a version number (they can start with a v or not).
 
                     SortedDictionary<Version, List<string>> versionsInRoot = GatherVersionStrings(null, rootPathWithIdentifier.GetDirectories().Select<DirectoryInfo, string>(directory => directory.Name));
 
-                    //ErrorUtilities.DebugTraceMessage("GatherSDKListFromDirectory", "Found '{0}' version folders under the identifier path '{1}'. ", versionsInRoot.Count, rootPathWithIdentifier);
+                    Console.WriteLine("GatherSDKListFromDirectory: Found '{0}' version folders under the identifier path '{1}'. ", versionsInRoot.Count, rootPathWithIdentifier);
 
                     // Go through each of the targetplatform versions under the targetplatform identifier.
                     foreach (KeyValuePair<Version, List<string>> directoryUnderRoot in versionsInRoot)
@@ -261,7 +259,7 @@ namespace EnumSDKs.Extracted
                             }
                             else
                             {
-                                //ErrorUtilities.DebugTraceMessage("GatherSDKListFromDirectory", "Could not find ExtensionsSDK folder '{0}'. ", sdkFolderPath);
+                                Console.WriteLine("GatherSDKListFromDirectory: Could not find ExtensionsSDK folder '{0}'. ", sdkFolderPath);
                             }
                         }
                     }
@@ -414,17 +412,17 @@ namespace EnumSDKs.Extracted
 
                             // Make something like SOFTWARE\MICROSOFT\Microsoft SDKs\Windows\8.0\ExtensionSdks
                             string extensionSDKsKey = platformSDKsRegistryKey + @"\ExtensionSDKs";
-                            //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Getting subkeys of '{0}'", extensionSDKsKey);
+                            Console.WriteLine("GatherSDKsFromRegistryImpl: Getting subkeys of '{0}'", extensionSDKsKey);
 
                             // Get all of the SDK name folders under the ExtensionSDKs registry key
                             IEnumerable<string> sdkNames = getRegistrySubKeyNames(baseKey, extensionSDKsKey);
                             if (sdkNames == null)
                             {
-                                //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Could not find subkeys of '{0}'", extensionSDKsKey);
+                                Console.WriteLine("GatherSDKsFromRegistryImpl: Could not find subkeys of '{0}'", extensionSDKsKey);
                                 continue;
                             }
 
-                            //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Found subkeys of '{0}'", extensionSDKsKey);
+                            Console.WriteLine("GatherSDKsFromRegistryImpl: Found subkeys of '{0}'", extensionSDKsKey);
 
                             // For each SDK folder under ExtensionSDKs
                             foreach (string sdkName in sdkNames)
@@ -436,14 +434,14 @@ namespace EnumSDKs.Extracted
                                 //Get all of the version registry keys under the SDK Name Key.
                                 IEnumerable<string> sdkVersions = getRegistrySubKeyNames(baseKey, sdkNameKey);
 
-                                //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Getting subkeys of '{0}'", sdkNameKey);
+                                Console.WriteLine("GatherSDKsFromRegistryImpl: Getting subkeys of '{0}'", sdkNameKey);
                                 if (sdkVersions == null)
                                 {
-                                    //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Could not find subkeys of '{0}'", sdkNameKey);
+                                    Console.WriteLine("GatherSDKsFromRegistryImpl: Could not find subkeys of '{0}'", sdkNameKey);
                                     continue;
                                 }
 
-                                //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Found subkeys of '{0}'", sdkNameKey);
+                                Console.WriteLine("GatherSDKsFromRegistryImpl: Found subkeys of '{0}'", sdkNameKey);
 
                                 // For each version registry entry under the SDK Name registry key
                                 foreach (string sdkVersion in sdkVersions)
@@ -453,14 +451,14 @@ namespace EnumSDKs.Extracted
                                     if (Version.TryParse(sdkVersion, out tempVersion))
                                     {
                                         string sdkDirectoryKey = sdkNameKey + @"\" + sdkVersion;
-                                        //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Getting default key for '{0}'", sdkDirectoryKey);
+                                        Console.WriteLine("GatherSDKsFromRegistryImpl: Getting default key for '{0}'", sdkDirectoryKey);
 
                                         // Now that we found the registry key we need to get its default value which points to the directory this SDK is in.
                                         string directoryName = getRegistrySubKeyDefaultValue(baseKey, sdkDirectoryKey);
                                         string sdkKey = TargetPlatformSDK.GetSdkKey(sdkName, sdkVersion);
                                         if (directoryName != null)
                                         {
-                                            //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "SDK installation location = '{0}'", directoryName);
+                                            Console.WriteLine("GatherSDKsFromRegistryImpl: SDK installation location = '{0}'", directoryName);
 
                                             // Make sure the directory exists and that it has not been added before.
                                             if (!targetPlatformSDK.ExtensionSDKs.ContainsKey(sdkKey))
@@ -470,27 +468,27 @@ namespace EnumSDKs.Extracted
                                                     string sdkManifestFileLocation = Path.Combine(directoryName, "SDKManifest.xml");
                                                     if (fileExists(sdkManifestFileLocation))
                                                     {
-                                                        //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Adding SDK '{0}'  at '{1}' to the list of found sdks.", sdkKey, directoryName);
+                                                        Console.WriteLine("GatherSDKsFromRegistryImpl: Adding SDK '{0}'  at '{1}' to the list of found sdks.", sdkKey, directoryName);
                                                         targetPlatformSDK.ExtensionSDKs.Add(sdkKey, TargetPlatformSDK.EnsureTrailingSlash(directoryName));
                                                     }
                                                     else
                                                     {
-                                                        //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "No SDKManifest.xml file found at '{0}'.", sdkManifestFileLocation);
+                                                        Console.WriteLine("GatherSDKsFromRegistryImpl: No SDKManifest.xml file found at '{0}'.", sdkManifestFileLocation);
                                                     }
                                                 }
                                                 else
                                                 {
-                                                    //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "SDK directory '{0}' does not exist", directoryName);
+                                                    Console.WriteLine("GatherSDKsFromRegistryImpl: SDK directory '{0}' does not exist", directoryName);
                                                 }
                                             }
                                             else
                                             {
-                                                //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "SDK key was previously added. '{0}'", sdkKey);
+                                                Console.WriteLine("GatherSDKsFromRegistryImpl: SDK key was previously added. '{0}'", sdkKey);
                                             }
                                         }
                                         else
                                         {
-                                            //ErrorUtilities.DebugTraceMessage("GatherSDKsFromRegistryImpl", "Default key is null for '{0}'", sdkDirectoryKey);
+                                            Console.WriteLine("GatherSDKsFromRegistryImpl: Default key is null for '{0}'", sdkDirectoryKey);
                                         }
                                     }
                                 }
@@ -651,22 +649,22 @@ namespace EnumSDKs.Extracted
 
         internal static void GatherExtensionSDKs(DirectoryInfo extensionSdksDirectory, TargetPlatformSDK targetPlatformSDK)
         {
-            //ErrorUtilities.DebugTraceMessage("GatherExtensionSDKs", "Found ExtensionsSDK folder '{0}'. ", extensionSdksDirectory.FullName);
+            Console.WriteLine("GatherExtensionSDKs: Found ExtensionsSDK folder '{0}'. ", extensionSdksDirectory.FullName);
 
             DirectoryInfo[] sdkNameDirectories = extensionSdksDirectory.GetDirectories();
-            //ErrorUtilities.DebugTraceMessage("GatherExtensionSDKs", "Found '{0}' sdkName directories under '{1}'", sdkNameDirectories.Length, extensionSdksDirectory.FullName);
+            Console.WriteLine("GatherExtensionSDKs: Found '{0}' sdkName directories under '{1}'", sdkNameDirectories.Length, extensionSdksDirectory.FullName);
 
             // For each SDKName under the ExtensionSDKs directory
             foreach (DirectoryInfo sdkNameFolders in sdkNameDirectories)
             {
                 DirectoryInfo[] sdkVersionDirectories = sdkNameFolders.GetDirectories();
-                //ErrorUtilities.DebugTraceMessage("GatherExtensionSDKs", "Found '{0}' sdkVersion directories under '{1}'", sdkVersionDirectories.Length, sdkNameFolders.FullName);
+                Console.WriteLine("GatherExtensionSDKs: Found '{0}' sdkVersion directories under '{1}'", sdkVersionDirectories.Length, sdkNameFolders.FullName);
 
                 // For each Version directory under the SDK Name
                 foreach (DirectoryInfo sdkVersionDirectory in sdkVersionDirectories)
                 {
                     // Make sure the version folder parses to a version, anything that cannot parse directly to a version is to be ignored.
-                    //ErrorUtilities.DebugTraceMessage("GatherExtensionSDKs", "Parsed sdk version folder '{0}' under '{1}'", sdkVersionDirectory.Name, sdkVersionDirectory.FullName);
+                    Console.WriteLine("GatherExtensionSDKs: Parsed sdk version folder '{0}' under '{1}'", sdkVersionDirectory.Name, sdkVersionDirectory.FullName);
                     if (Version.TryParse(sdkVersionDirectory.Name, out Version _))
                     {
                         // Create SDK name based on the folder structure. We could open the manifest here and read the display name, but that would 
@@ -676,7 +674,7 @@ namespace EnumSDKs.Extracted
                         // Make sure we have not added the SDK to the list of found SDKs before.
                         if (!targetPlatformSDK.ExtensionSDKs.ContainsKey(SDKKey))
                         {
-                            //ErrorUtilities.DebugTraceMessage("GatherExtensionSDKs", "SDKKey '{0}' was not already found.", SDKKey);
+                            Console.WriteLine("GatherExtensionSDKs: SDKKey '{0}' was not already found.", SDKKey);
                             string pathToSDKManifest = Path.Combine(sdkVersionDirectory.FullName, "SDKManifest.xml");
                             if (File.Exists(pathToSDKManifest))
                             {
@@ -684,17 +682,17 @@ namespace EnumSDKs.Extracted
                             }
                             else
                             {
-                                //ErrorUtilities.DebugTraceMessage("GatherExtensionSDKs", "No SDKManifest.xml files could be found at '{0}'. Not adding sdk", pathToSDKManifest);
+                                Console.WriteLine("GatherExtensionSDKs: No SDKManifest.xml files could be found at '{0}'. Not adding sdk", pathToSDKManifest);
                             }
                         }
                         else
                         {
-                            //ErrorUtilities.DebugTraceMessage("GatherExtensionSDKs", "SDKKey '{0}' was already found, not adding sdk under '{1}'", SDKKey, sdkVersionDirectory.FullName);
+                            Console.WriteLine("GatherExtensionSDKs: SDKKey '{0}' was already found, not adding sdk under '{1}'", SDKKey, sdkVersionDirectory.FullName);
                         }
                     }
                     else
                     {
-                        //ErrorUtilities.DebugTraceMessage("GatherExtensionSDKs", "Failed to parse sdk version folder '{0}' under '{1}'", sdkVersionDirectory.Name, sdkVersionDirectory.FullName);
+                        Console.WriteLine("GatherExtensionSDKs: Failed to parse sdk version folder '{0}' under '{1}'", sdkVersionDirectory.Name, sdkVersionDirectory.FullName);
                     }
                 }
             }
